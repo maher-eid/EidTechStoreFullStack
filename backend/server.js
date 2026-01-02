@@ -136,6 +136,16 @@ app.post("/admin/login", (req, res) => {
     });
   });
 });
+app.get("/api/db-check", (req, res) => {
+  db.query("SELECT COUNT(*) AS count FROM products", (err, data) => {
+    if (err) {
+      console.error("DB ERROR:", err);
+      return res.status(500).json(err);
+    }
+    res.json(data);
+  });
+});
+
 
 app.get("/products", (req, res) => {
   db.query("SELECT * FROM products ORDER BY id DESC", (err, data) => {
