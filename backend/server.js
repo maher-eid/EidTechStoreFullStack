@@ -7,21 +7,23 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
-
-
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  console.log("REQUEST:", req.method, req.url);
+  next();
+});
 
-const BASE_URL =
-  process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+const PORT = process.env.PORT || 5000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+
 const imagesDir = path.join(__dirname, "images");
-
 if (!fs.existsSync(imagesDir)) {
   fs.mkdirSync(imagesDir, { recursive: true });
 }
-
 app.use("/images", express.static(imagesDir));
 
+// MySQL connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -37,12 +39,15 @@ db.connect((err) => {
   }
 });
 
-
+// Multer (image upload)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, imagesDir),
   filename: (req, file, cb) => {
     const uniqueName =
-      Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname);
+      Date.now() +
+      "-" +
+      Math.round(Math.random() * 1e9) +
+      path.extname(file.originalname);
     cb(null, uniqueName);
   },
 });
@@ -59,11 +64,14 @@ const upload = multer({
   },
 });
 
+// TEST API
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "Backend connected successfully" });
 });
 
+
+// USER REGISTER
 
 app.post("/user/register", (req, res) => {
   const { name, email, password } = req.body;
@@ -71,16 +79,23 @@ app.post("/user/register", (req, res) => {
   if (!name || !email || !password)
     return res.status(400).json({ message: "All fields required" });
 
-  const q = "INSERT INTO users (name, email, password, isAdmin) VALUES (?, ?, ?, 0)";
+  const q =
+    "INSERT INTO users (name, email, password, isAdmin) VALUES (?, ?, ?, 0)";
   db.query(q, [name.trim(), email.trim(), password], (err, result) => {
-    if (err) return res.status(500).json({ message: "Registration failed" });
-    res.status(201).json({ message: "Account created", userId: result.insertId });
+    if (err)
+      return res.status(500).json({ message: "Registration failed" });
+
+    res.status(201).json({
+      message: "Account created",
+      userId: result.insertId,
+    });
   });
 });
 
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
   const q = "SELECT * FROM users WHERE email = ? AND password = ?";
+
   db.query(q, [email, password], (err, data) => {
     if (err || data.length === 0)
       return res.status(401).json({ message: "Invalid credentials" });
@@ -97,12 +112,35 @@ app.post("/login", (req, res) => {
   });
 });
 
-/* =======================
-   PRODUCTS
-======================= */
+// =======================
+// ADMIN LOGIN (EXPLICIT)
+// =======================
+app.post("/admin/login", (req, res) => {
+  const { email, password } = req.body;
+  const q =
+    "SELECT * FROM users WHERE email = ? AND password = ? AND isAdmin = 1";
+
+  db.query(q, [email, password], (err, data) => {
+    if (err || data.length === 0)
+      return res
+        .status(401)
+        .json({ message: "Invalid admin credentials" });
+
+    res.json({
+      message: "Admin login successful",
+      admin: {
+        id: data[0].id,
+        name: data[0].name,
+        email: data[0].email,
+      },
+    });
+  });
+});
+
 app.get("/products", (req, res) => {
   db.query("SELECT * FROM products ORDER BY id DESC", (err, data) => {
-    if (err) return res.status(500).json({ message: "Failed to fetch products" });
+    if (err)
+      return res.status(500).json({ message: "Failed to fetch products" });
 
     res.json(
       data.map((p) => ({
@@ -114,15 +152,19 @@ app.get("/products", (req, res) => {
 });
 
 app.get("/products/:id", (req, res) => {
-  db.query("SELECT * FROM products WHERE id = ?", [req.params.id], (err, data) => {
-    if (err || data.length === 0)
-      return res.status(404).json({ message: "Product not found" });
+  db.query(
+    "SELECT * FROM products WHERE id = ?",
+    [req.params.id],
+    (err, data) => {
+      if (err || data.length === 0)
+        return res.status(404).json({ message: "Product not found" });
 
-    res.json({
-      ...data[0],
-      image: `${BASE_URL}/images/${data[0].image}`,
-    });
-  });
+      res.json({
+        ...data[0],
+        image: `${BASE_URL}/images/${data[0].image}`,
+      });
+    }
+  );
 });
 
 app.post("/products", upload.single("image"), (req, res) => {
@@ -132,37 +174,47 @@ app.post("/products", upload.single("image"), (req, res) => {
 
   const q =
     "INSERT INTO products (name, price, image, description, stock, category_id) VALUES (?, ?, ?, ?, 0, 1)";
-  db.query(q, [name, price, req.file.filename, description], (err, result) => {
-    if (err) return res.status(500).json({ message: "Add product failed" });
-    res.status(201).json({ message: "Product added", id: result.insertId });
-  });
+  db.query(
+    q,
+    [name, price, req.file.filename, description],
+    (err, result) => {
+      if (err)
+        return res.status(500).json({ message: "Add product failed" });
+
+      res.status(201).json({
+        message: "Product added",
+        id: result.insertId,
+      });
+    }
+  );
 });
 
 app.delete("/products/:id", (req, res) => {
-  db.query("SELECT image FROM products WHERE id = ?", [req.params.id], (err, data) => {
-    if (data.length === 0) return res.status(404).json({ message: "Not found" });
+  db.query(
+    "SELECT image FROM products WHERE id = ?",
+    [req.params.id],
+    (err, data) => {
+      if (!data || data.length === 0)
+        return res.status(404).json({ message: "Not found" });
 
-    const img = path.join(imagesDir, data[0].image);
-    if (fs.existsSync(img)) fs.unlinkSync(img);
+      const img = path.join(imagesDir, data[0].image);
+      if (fs.existsSync(img)) fs.unlinkSync(img);
 
-    db.query("DELETE FROM products WHERE id = ?", [req.params.id], () =>
-      res.json({ message: "Product deleted" })
-    );
-  });
+      db.query(
+        "DELETE FROM products WHERE id = ?",
+        [req.params.id],
+        () => res.json({ message: "Product deleted" })
+      );
+    }
+  );
 });
 
-/* =======================
-   ERRORS
-======================= */
 app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message || "Server error" });
 });
 
-/* =======================
-   START SERVER
-======================= */
-const PORT = process.env.PORT || 5000;
+// START SERVER
 app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT}`);
-  console.log(` Base URL: ${BASE_URL}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Base URL: ${BASE_URL}`);
 });
