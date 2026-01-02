@@ -24,21 +24,16 @@ if (!fs.existsSync(imagesDir)) {
 app.use("/images", express.static(imagesDir));
 
 // MySQL connection
-const db = mysql.createConnection({
+// MySQL connection POOL (Railway fix)
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
+  connectionLimit: 10,
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error(" DB connection failed:", err);
-  } else {
-    console.log(" MySQL Connected");
-  }
-});
-
+ 
 // Multer (image upload)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, imagesDir),
