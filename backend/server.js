@@ -24,19 +24,12 @@ if (!fs.existsSync(imagesDir)) {
 app.use("/images", express.static(imagesDir));
 
 // MySQL connection
-// MySQL connection POOL (Railway fix)
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   connectionLimit: 10,
-});
-console.log("ENV CHECK:", {
-  DB_HOST: process.env.DB_HOST,
-  DB_PORT: process.env.DB_PORT,
-  DB_USER: process.env.DB_USER,
-  DB_NAME: process.env.DB_NAME,
 });
 
 
@@ -113,6 +106,12 @@ app.post("/login", (req, res) => {
     });
   });
 });
+console.log({
+  host: process.env.DB_HOST,
+  db: process.env.DB_NAME,
+  port: process.env.DB_PORT
+});
+
 
 // =======================
 // ADMIN LOGIN (EXPLICIT)
