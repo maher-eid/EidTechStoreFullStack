@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import ProductCard from "../Components/ProductCard";
 import CardSlider from "../Components/CardsSlider";
 import { productImages } from "../utils/imageImports";
+const API_URL = process.env.REACT_APP_API_URL;
+
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState("about");
@@ -107,7 +109,7 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Offers Content */}
+          
           <div
             style={{
               background: "#fff3f3",

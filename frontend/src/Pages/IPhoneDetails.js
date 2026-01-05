@@ -1,6 +1,8 @@
 import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { productImages } from "../utils/imageImports";
+const API_URL = process.env.REACT_APP_API_URL;
+
 
  
 const iphoneSpecs = {

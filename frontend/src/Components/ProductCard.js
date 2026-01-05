@@ -1,31 +1,26 @@
 import "../Assets/ProductCard.css";
 import React, { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";       
+import { Link, useNavigate } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
 import { AuthContext } from "../context/AuthContext";
+import { productImages } from "../utils/imageImports";
 
-const ProductCard = ({ product, compact = false }) => {
+const ProductCard = ({ product, compact = false, onDelete, onDetailsClick }) => {
   const navigate = useNavigate();
   const { addToCart, showNotification } = useContext(CartContext);
-  const { isAuthenticated } = useContext(AuthContext);
+  const { isAuthenticated, isAdmin } = useContext(AuthContext);
 
-  if (!product) {
-    return <div className="product-card">No product data</div>;
-  }
+  if (!product) return null;
 
   const handleAdd = () => {
     if (!isAuthenticated()) {
-      if (typeof showNotification === "function") {
-        showNotification("Please login to add items to cart");
-      }
+      showNotification?.("Please login to add items to cart");
       navigate("/login");
       return;
     }
-    
+
     addToCart(product, 1);
-    if (typeof showNotification === "function") {
-      showNotification(`${product.name} added to cart!`);
-    }
+    showNotification?.(`${product.name} added to cart!`);
   };
 
   return (
@@ -35,36 +30,51 @@ const ProductCard = ({ product, compact = false }) => {
         alt={product.name}
         className="card-img"
         onError={(e) => {
-          e.currentTarget.onerror = null;
-          e.currentTarget.src =
-            "https://via.placeholder.com/400x300?text=No+Image";
+          e.currentTarget.src = productImages.logo;
         }}
       />
+
       <h3>{product.name}</h3>
       <p>${product.price}</p>
 
-      {/* Buttons */}
       <button onClick={handleAdd} className="buy-btn">
         Add to Cart
       </button>
 
-      {/* 🔹 NEW Details button */}
-      {product.model && (
-        <Link
-          to={`/iphonedetails/${product.model}`}
+      {/* DETAILS — ALWAYS SHOWN */}
+      <Link
+        to={`/iphonedetails/${product.model || product.id}`}
+        style={{
+          display: "inline-block",
+          marginTop: 8,
+          padding: "8px 12px",
+          borderRadius: 6,
+          background: "#444",
+          color: "white",
+          textDecoration: "none",
+          fontSize: 14,
+        }}
+      >
+        Details
+      </Link>
+
+      {/* ADMIN DELETE — ALL CARDS */}
+      {isAdmin() && onDelete && (
+        <button
+          onClick={() => onDelete(product.id)}
           style={{
-            display: "inline-block",
-            marginTop: 8,
+            marginTop: 10,
+            background: "red",
+            color: "white",
+            border: "none",
             padding: "8px 12px",
             borderRadius: 6,
-            background: "#444",
-            color: "white",
-            textDecoration: "none",
-            fontSize: 14,
+            cursor: "pointer",
+            width: "100%",
           }}
         >
-          Details
-        </Link>
+          Delete
+        </button>
       )}
     </div>
   );

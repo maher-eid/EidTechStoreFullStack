@@ -1,4 +1,3 @@
-// Navbar.jsx  ✅ FIXED (ADMIN CHECK ALIGNED WITH AuthContext)
 
 import { Link } from "react-router-dom";
 import "../Assets/Navbar.css";
@@ -35,7 +34,7 @@ export default function Navbar() {
         <Link to="/home">Home</Link>
         <Link to="/products">Products</Link>
 
-        {/* ✅ ADMIN ONLY LINK (FIXED) */}
+       
         {isAuthenticated() && isAdmin() && (
           <Link to="/add-products">Add Products</Link>
         )}
@@ -48,7 +47,7 @@ export default function Navbar() {
         </Link>
       </div>
 
-      {/* MOBILE */}
+ 
       <button
         className="mobile-toggle"
         onClick={() => setMobileMenuOpen(true)}
